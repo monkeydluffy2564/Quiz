@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Quiz Generator By Kru Amorn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Libraries for Exporting & Charts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Libraries for File Reading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.18/mammoth.browser.min.js"></script>
+
+    <!-- MathJax for rendering math formulas -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+        }
+        .main-tab.active {
+            border-color: #4f46e5;
+            color: #4f46e5;
+            background-color: #eef2ff;
+        }
+        .generation-tab.active {
+            border-color: #4f46e5;
+            color: #4f46e5;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4f46e5;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Presentation Mode Styles */
+        .presentation-option {
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+        #presentation-modal:fullscreen {
+            background-color: #1f2937; /* bg-gray-800 */
+        }
+        /* Timer Bar */
+        #timer-bar-container {
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        #timer-bar {
+            height: 100%;
+            background-color: #4f46e5;
+            transition: width 1s linear;
+        }
+        [contenteditable="true"] {
+            outline: 2px dashed #4f46e5;
+            background-color: #eef2ff;
+            padding: 2px;
+        }
+        .details-marker {
+            transition: transform 0.2s;
+        }
+        details[open] .details-marker {
+            transform: rotate(90deg);
+        }
+        .badge-icon {
+            animation: popIn 0.5s ease-out forwards;
+            transform: scale(0);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .delete-svg-btn {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .delete-svg-btn:hover {
+            opacity: 1;
+        }
+        /* Live Game Styles */
+        .live-game-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .podium-step {
+            transition: transform 0.5s ease-out;
+        }
+        .podium-step:hover {
+            transform: translateY(-10px);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl relative">
+
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-indigo-600">
+                <i class="fas fa-brain mr-2"></i>AI Quiz Generator
+            </h1>
+            <p class="text-lg text-gray-600 mt-1">By Kru Amorn</p>
+            <p class="text-gray-500 mt-2">สร้างโปรเจค จัดการแบบทดสอบ และติดตามผลนักเรียน</p>
+        </header>
+
+        <!-- Main Content -->
+        <main id="main-content" class="bg-white p-6 rounded-2xl shadow-lg min-h-[400px]">
+            <!-- Admin View -->
+            <div id="admin-view" class="hidden fade-in">
+                <!-- Project Dashboard (Default Admin View) -->
+                <div id="project-dashboard-view">
+                    <!-- NEW: Starred Quizzes Section -->
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                        <h2 class="text-2xl font-bold text-indigo-700">โปรเจคทั้งหมด</h2>
+                        <div class="flex items-center gap-2 w-full md:w-auto">
+                           <input type="text" id="project-search-input" placeholder="ค้นหาโปรเจค..." class="w-full md:w-auto p-2 border border-gray-300 rounded-lg">
+                           <select id="project-sort-select" class="p-2 border border-gray-300 rounded-lg">
+                               <option value="date_desc">ใหม่ล่าสุด</option>
+                               <option value="date_asc">เก่าที่สุด</option>
+                               <option value="name_asc">ชื่อ (ก-ฮ)</option>
+                               <option value="name_desc">ชื่อ (ฮ-ก)</option>
+                           </select>
+                           <button id="create-project-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-indigo-700 transition-all duration-300 flex items-center shrink-0">
+                               <i class="fas fa-plus-circle mr-2"></i>สร้าง
+                           </button>
+						   <button id="open-global-live-btn"
+  class="bg-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-all duration-300 flex items-center shrink-0">
+  <i class="fas fa-bolt mr-2"></i>Live Game
+</button>
+                        </div>
+                    </div>
+                    <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Project cards will be inserted here -->
+                        <p id="no-projects-msg" class="text-gray-500 col-span-full text-center py-8">ยังไม่มีโปรเจค... คลิก 'สร้าง' เพื่อเริ่มต้น</p>
+                    </div>
+                </div>
+
+                <!-- Project Detail View -->
+                <div id="project-detail-view" class="hidden">
+                    <button id="back-to-dashboard-btn" class="mb-4 text-indigo-600 hover:underline"><i class="fas fa-arrow-left mr-2"></i>กลับไปหน้า Dashboard</button>
+                    <h2 id="project-title" class="text-3xl font-bold text-indigo-700 mb-2"></h2>
+                    <p class="text-sm text-gray-500 mb-6">Project ID: <span id="project-id-display" class="font-mono"></span></p>
+                    
+                    <!-- Project Tabs -->
+                    <div class="border-b border-gray-200 mb-6">
+                        <nav class="-mb-px flex space-x-6">
+                            <button id="manage-tab" class="main-tab active whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg">
+                                <i class="fas fa-sliders-h mr-2"></i>จัดการ
+                            </button>
+                            <button id="results-tab" class="main-tab whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-poll mr-2"></i>ผลลัพธ์
+                            </button>
+                            <button id="leaderboard-tab" class="main-tab whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-trophy mr-2"></i>ตารางผู้นำ
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- Manage Tab Content -->
+                    <div id="manage-tab-content">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <!-- Left Column: Settings & Students -->
+                            <div class="space-y-6">
+                                <!-- Quiz Settings -->
+                                <div>
+                                    <h3 class="text-xl font-semibold mb-3 border-b pb-2">ตั้งค่าแบบทดสอบ (สำหรับสร้างใหม่)</h3>
+                                    <div class="space-y-4 p-4 bg-gray-50 rounded-lg">
+                                        <div>
+                                            <label for="quiz-type-select" class="block text-sm font-medium text-gray-700">ประเภทคำถาม:</label>
+                                            <select id="quiz-type-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                                                <optgroup label="ทั่วไป">
+                                                    <option value="multiple_choice">แบบเลือกตอบ (ก, ข, ค, ง)</option>
+                                                    <option value="matching">แบบจับคู่ (แยกข้อ)</option>
+                                                    <option value="true_false">แบบถูก/ผิด</option>
+                                                </optgroup>
+                                                <optgroup label="แบบเติมคำ">
+                                                    <option value="fill_in_with_choices">เติมคำ (มีตัวเลือกให้)</option>
+                                                    <option value="fill_in_no_choices">เติมคำ (พิมพ์ตอบเอง)</option>
+                                                    <option value="mixed">แบบผสม (เลือกตอบและเติมคำ)</option>
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label for="num-questions" class="block text-sm font-medium text-gray-700">จำนวนข้อ:</label>
+                                                <input type="number" id="num-questions" value="5" min="1" max="20" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                                            </div>
+                                            <div>
+                                                <label for="passing-score-input" class="block text-sm font-medium text-gray-700">คะแนนที่ผ่าน:</label>
+                                                <input type="number" id="passing-score-input" value="3" min="0" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                                            </div>
+                                        </div>
+                                        <div id="num-choices-container">
+                                            <label for="num-choices" class="block text-sm font-medium text-gray-700">จำนวนตัวเลือก:</label>
+                                            <input type="number" id="num-choices" value="4" min="2" max="6" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                                        </div>
+                                        <div>
+                                            <label for="shuffle-setting-select" class="block text-sm font-medium text-gray-700">การสลับข้อ/ตัวเลือก:</label>
+                                            <select id="shuffle-setting-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                                                <option value="none">ไม่สลับ</option>
+                                                <option value="questions_only">สลับเฉพาะข้อ</option>
+                                                <option value="choices_only">สลับเฉพาะตัวเลือก</option>
+                                                <option value="both">สลับทั้งข้อและตัวเลือก</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label for="results-display-select" class="block text-sm font-medium text-gray-700">การแสดงผลให้นักเรียน:</label>
+                                            <select id="results-display-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                                                <option value="show_results_and_answers">ทราบคะแนนและเฉลยทันที</option>
+                                                <option value="show_results_only">ทราบเฉพาะคะแนน (ไม่เห็นเฉลย)</option>
+                                                <option value="manual_release">รอผู้ดูแลแจ้งผล</option>
+                                            </select>
+                                        </div>
+                                        <!-- Adaptive Quiz Checkbox -->
+                                        <div class="flex items-center mt-2">
+                                            <input id="adaptive-quiz-checkbox" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                                            <label for="adaptive-quiz-checkbox" class="ml-2 block text-sm font-medium text-gray-900">
+                                                เปิดใช้งานแบบทดสอบปรับพื้นฐาน
+                                            </label>
+                                        </div>
+                                        <div class="border-t pt-4 mt-2">
+                                            <label for="timer-mode-select" class="block text-sm font-medium text-gray-700">ตั้งค่าการจับเวลา:</label>
+                                            <select id="timer-mode-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                                                <option value="none">ไม่มีการจับเวลา</option>
+                                                <option value="whole_quiz">จับเวลาทั้งแบบทดสอบ (นาที)</option>
+                                                <option value="per_question">จับเวลาทีละข้อ (วินาที)</option>
+                                            </select>
+                                            <div id="timer-duration-container" class="mt-2 hidden">
+                                                <label for="timer-duration-input" id="timer-duration-label" class="block text-sm font-medium text-gray-700">ระยะเวลา:</label>
+                                                <input type="number" id="timer-duration-input" value="10" min="1" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                                            </div>
+                                        </div>
+                                        <button id="save-settings-btn" class="w-full bg-teal-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-teal-700 transition-colors text-sm">
+                                            <i class="fas fa-save mr-2"></i>บันทึกการตั้งค่า
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Student Management -->
+                                <div>
+                                    <h3 class="text-xl font-semibold mb-3 border-b pb-2">จัดการรายชื่อนักเรียน</h3>
+                                    <div class="p-4 bg-gray-50 rounded-lg">
+                                        <div class="flex flex-col gap-2 mb-3">
+                                            <label for="student-name-input" class="text-sm font-medium text-gray-700">เพิ่มรายชื่อนักเรียน (หนึ่งชื่อต่อหนึ่งบรรทัด):</label>
+                                            <textarea id="student-name-input" rows="3" class="w-full p-2 border border-gray-300 rounded-lg" placeholder="สมชาย ใจดี&#10;สมศรี มีสุข"></textarea>
+                                            <button id="add-student-btn" class="bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 self-end"><i class="fas fa-user-plus mr-2"></i>เพิ่มรายชื่อ</button>
+                                        </div>
+                                        <div class="flex justify-between items-center mb-2">
+                                            <h4 class="font-semibold text-sm">รายชื่อปัจจุบัน:</h4>
+                                            <button id="delete-all-students-btn" class="text-red-600 hover:text-red-800 text-xs font-semibold py-1 px-2 rounded-md bg-red-100 hover:bg-red-200 transition-colors hidden"><i class="fas fa-trash-alt mr-1"></i>ลบทั้งหมด</button>
+                                        </div>
+                                        <div id="student-list" class="max-h-40 overflow-y-auto space-y-1 text-sm p-2 bg-white border rounded-md">
+                                            <!-- Student names will be here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Column: Quiz Generation -->
+                            <div>
+                                <h3 class="text-xl font-semibold mb-3 border-b pb-2">สร้างแบบทดสอบใหม่</h3>
+                                <div id="quiz-generation-container" class="p-4 bg-gray-50 rounded-lg">
+                                    <!-- Generation Tabs -->
+                                    <div class="flex border-b mb-4 flex-wrap">
+                                        <button id="topic-tab" class="generation-tab py-2 px-4 font-semibold active"><i class="fas fa-lightbulb mr-2"></i>จากหัวข้อ</button>
+                                        <button id="text-tab" class="generation-tab py-2 px-4 font-semibold text-gray-500"><i class="fas fa-file-alt mr-2"></i>จากเนื้อหา</button>
+                                        <button id="file-tab" class="generation-tab py-2 px-4 font-semibold text-gray-500"><i class="fas fa-file-upload mr-2"></i>จากไฟล์</button>
+                                        <button id="link-tab" class="generation-tab py-2 px-4 font-semibold text-gray-500"><i class="fas fa-link mr-2"></i>จากลิงก์</button>
+                                        <button id="worksheet-tab" class="generation-tab py-2 px-4 font-semibold text-gray-500"><i class="fas fa-print mr-2"></i>สร้างใบงาน</button>
+                                        <button id="bank-tab" class="generation-tab py-2 px-4 font-semibold text-gray-500"><i class="fas fa-university mr-2"></i>จากคลังข้อสอบ</button>
+                                    </div>
+
+                                    <!-- Question Bank Input -->
+<div id="bank-input-area" class="hidden space-y-4">
+    <!-- เนื้อหาคลังข้อสอบจะถูกสร้างโดย JavaScript -->
+</div>
+
+                                    <!-- NEW: Checkbox for including images -->
+                                    <div class="flex items-center my-4">
+                                        <input id="include-images-checkbox" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                                        <label for="include-images-checkbox" class="ml-3 block text-sm font-medium text-gray-800">
+                                            สร้างคำถามพร้อมรูปภาพ (สำหรับเรขาคณิต, กราฟ, ฯลฯ)
+                                        </label>
+                                    </div>
+                                    <!-- Topic Input -->
+                                    <div id="topic-input-area" class="space-y-4">
+                                        <input type="text" id="topic-input" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="เช่น ทฤษฎีบทพีทาโกรัส">
+                                        <button id="generate-from-topic-btn" class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-indigo-700 flex items-center justify-center"><i class="fas fa-cogs mr-2"></i>สร้างแบบทดสอบ</button>
+                                    </div>
+                                    <!-- Text Input -->
+                                    <div id="text-input-area" class="hidden space-y-4">
+                                        <textarea id="text-content-input" rows="6" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="วางเนื้อหาที่นี่..."></textarea>
+                                        <button id="generate-from-text-btn" class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-indigo-700 flex items-center justify-center"><i class="fas fa-cogs mr-2"></i>สร้างแบบทดสอบ</button>
+                                    </div>
+                                    <!-- File Input -->
+                                    <div id="file-input-area" class="hidden space-y-4">
+                                        <label for="file-upload-input" class="block text-sm font-medium text-gray-700">เลือกไฟล์ PDF หรือ Word (.docx):</label>
+                                        <input type="file" id="file-upload-input" class="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf,.docx">
+                                        <p class="text-xs text-gray-500">ไฟล์จะถูกประมวลผลในเบราว์เซอร์ของคุณ ไม่มีการอัปโหลดขึ้นเซิร์ฟเวอร์</p>
+                                    </div>
+                                    <!-- Link Input -->
+                                    <div id="link-input-area" class="hidden space-y-4">
+                                        <input type="url" id="link-url-input" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="วาง URL ของบทความที่นี่...">
+                                        <input type="text" id="link-topic-input" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="ระบุหัวข้อ (เพื่อความแม่นยำ)...">
+                                        <button id="generate-from-link-btn" class="w-full bg-cyan-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-cyan-700 flex items-center justify-center">
+                                            <i class="fas fa-cogs mr-2"></i>ดึงข้อมูลและสร้างแบบทดสอบ
+                                        </button>
+                                    </div>
+                                    <!-- Worksheet Input -->
+                                    <div id="worksheet-input-area" class="hidden space-y-4">
+                                        <input type="text" id="worksheet-topic-input" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="หัวข้อสำหรับสร้างใบงาน เช่น การบวกเลขสองหลัก">
+                                        <button id="generate-worksheet-btn" class="w-full bg-emerald-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-emerald-700 flex items-center justify-center"><i class="fas fa-file-alt mr-2"></i>สร้างใบงานสำหรับพิมพ์</button>
+                                    </div>
+                                </div>
+                                <!-- Generation Result Area -->
+                                <div id="quiz-generation-area" class="mt-6 hidden">
+                                    <div id="loader" class="flex flex-col items-center justify-center hidden">
+                                        <div class="loader"></div>
+                                        <p id="loader-text" class="mt-3 text-gray-600">กำลังสร้าง...</p>
+                                    </div>
+                                    <div id="generated-quiz-container"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Results Tab Content -->
+                    <div id="results-tab-content" class="hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold">แบบทดสอบในโปรเจคนี้</h3>
+                             <input type="text" id="quiz-search-input" placeholder="ค้นหาแบบทดสอบ..." class="w-full md:w-auto p-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div id="project-quizzes-list" class="space-y-3">
+                            <p class="text-gray-500">กำลังโหลดรายการแบบทดสอบ...</p>
+                        </div>
+                    </div>
+
+                    <!-- Leaderboard Tab Content -->
+                    <div id="leaderboard-tab-content" class="hidden">
+                        <h3 class="text-xl font-semibold mb-4">ตารางผู้นำโปรเจค (คะแนนรวม)</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white border border-gray-200">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="py-2 px-4 border-b text-center w-16">อันดับ</th>
+                                        <th class="py-2 px-4 border-b text-left">ชื่อนักเรียน</th>
+                                        <th class="py-2 px-4 border-b text-center">คะแนนรวม (Points)</th>
+                                        <th class="py-2 px-4 border-b text-left">ป้ายรางวัลที่ได้รับ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaderboard-table-body">
+                                    <!-- Leaderboard rows will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quiz Detail/Results View -->
+                <div id="quiz-results-view" class="hidden">
+<div class="flex items-center gap-4 mb-4">
+        <button id="back-to-project-btn" class="text-indigo-600 hover:underline"><i class="fas fa-arrow-left mr-2"></i>กลับไปหน้ารายละเอียดโปรเจค</button>
+
+        <!-- --- นี่คือปุ่มใหม่ที่เพิ่มเข้ามา --- -->
+        <button id="back-to-dashboard-from-results-btn" class="text-gray-500 hover:underline text-sm"><i class="fas fa-th-large mr-2"></i>กลับไปหน้า Dashboard</button>
+    </div>
+
+    <h2 id="results-quiz-title" class="text-3xl font-bold text-indigo-700 mb-2"></h2>
+    <p class="text-sm text-gray-500 mb-4">Quiz ID: <span id="results-quiz-id-display" class="font-mono"></span></p>
+
+                    <h2 id="results-quiz-title" class="text-3xl font-bold text-indigo-700 mb-2"></h2>
+
+                       <!-- Quiz Detail Tabs -->
+                    <div class="border-b border-gray-200 mb-6">
+                        <nav class="-mb-px flex space-x-6">
+                            <button id="analytics-tab-btn" class="main-tab active whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg">
+                                <i class="fas fa-chart-line mr-2"></i>วิเคราะห์ผล
+                            </button>
+                            <button id="scores-tab-btn" class="main-tab whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-users mr-2"></i>คะแนนนักเรียน
+                            </button>
+                            <!-- NEW: Quiz Leaderboard Tab Button -->
+                            <button id="leaderboard-quiz-tab-btn" class="main-tab whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-trophy mr-2"></i>ตารางผู้นำ
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- Analytics Tab -->
+                    <div id="analytics-tab-content">
+                        <!-- Summary Cards -->
+                        <div id="analytics-summary-cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <!-- Cards will be injected here -->
+                        </div>
+                        <!-- Charts -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-semibold mb-2 text-center">สถานะการส่งงาน</h4>
+                                <canvas id="submission-status-chart"></canvas>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-semibold mb-2 text-center">การกระจายคะแนน</h4>
+                                <canvas id="score-distribution-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- NEW: AI Strength/Weakness Analysis Section -->
+                        <div class="mt-8">
+                            <h3 class="text-xl font-semibold mb-3 border-b pb-2">AI วิเคราะห์ภาพรวม</h3>
+                            <div class="flex justify-center">
+                                <button id="analyze-strengths-btn" class="bg-indigo-600 text-white py-2 px-5 rounded-lg font-semibold hover:bg-indigo-700 transition-all duration-300 flex items-center gap-2">
+                                    <i class="fas fa-magic"></i>วิเคราะห์จุดแข็ง-จุดอ่อนของห้อง
+                                </button>
+                            </div>
+                            <div id="strength-weakness-analysis-container" class="mt-4">
+                                <!-- Analysis results will be displayed here -->
+                            </div>
+                        </div>
+
+                        <!-- Per-Question Analysis -->
+                        <div class="mt-8">
+                             <h3 class="text-xl font-semibold mb-3 border-b pb-2">สถิติรายข้อ</h3>
+                             <div id="question-analytics-container" class="space-y-4">
+                                 <!-- Accordions will be injected here -->
+                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Scores Tab -->
+                    <div id="scores-tab-content" class="hidden">
+                        <!-- Export Buttons -->
+                        <div class="mb-4 flex flex-wrap gap-2">
+                            <span class="self-center font-semibold mr-2">Export ผลลัพธ์:</span>
+                            <button id="export-image-btn" class="bg-gray-600 text-white py-1 px-3 rounded-md hover:bg-gray-700 text-sm flex items-center gap-2"><i class="fas fa-file-image"></i>Image</button>
+                            <button id="export-pdf-btn" class="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 text-sm flex items-center gap-2"><i class="fas fa-file-pdf"></i>PDF</button>
+                            <button id="export-word-btn" class="bg-blue-600 text-white py-1 px-3 rounded-md hover:bg-blue-700 text-sm flex items-center gap-2"><i class="fas fa-file-word"></i>Word</button>
+                            <button id="export-excel-btn" class="bg-green-600 text-white py-1 px-3 rounded-md hover:bg-green-700 text-sm flex items-center gap-2"><i class="fas fa-file-excel"></i>Excel</button>
+                        </div>
+                        <div class="overflow-x-auto" id="results-table-container">
+                            <table class="min-w-full bg-white border border-gray-200" id="results-table">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="py-2 px-4 border-b text-left">ชื่อนักเรียน</th>
+                                        <th class="py-2 px-4 border-b text-left">คะแนนดีที่สุด</th>
+                                        <th class="py-2 px-4 border-b text-left">ผล</th>
+                                        <th class="py-2 px-4 border-b text-left">ประเภท</th>
+                                        <th class="py-2 px-4 border-b text-left">คะแนนครั้งแรก</th>
+                                        <th class="py-2 px-4 border-b text-left">คะแนนล่าสุด</th>
+                                        <th class="py-2 px-4 border-b text-left">Points</th>
+                                        <th class="py-2 px-4 border-b text-left">สถานะ</th>
+                                        <th class="py-2 px-4 border-b text-left">เวลาที่ส่งล่าสุด</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="quiz-results-table-body">
+                                    <!-- Results will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- NEW: Quiz Leaderboard Tab Content -->
+                    <div id="leaderboard-quiz-tab-content" class="hidden">
+    <h3 class="text-xl font-semibold mb-4">ตารางผู้นำ (แบบทดสอบนี้)</h3>
+
+    <div class="mb-4 flex flex-wrap gap-2">
+        <span class="self-center font-semibold mr-2">Export ผลลัพธ์:</span>
+        <button id="export-leaderboard-image-btn" class="bg-gray-600 text-white py-1 px-3 rounded-md hover:bg-gray-700 text-sm flex items-center gap-2"><i class="fas fa-file-image"></i>Image</button>
+        <button id="export-leaderboard-pdf-btn" class="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 text-sm flex items-center gap-2"><i class="fas fa-file-pdf"></i>PDF</button>
+        <button id="export-leaderboard-word-btn" class="bg-blue-600 text-white py-1 px-3 rounded-md hover:bg-blue-700 text-sm flex items-center gap-2"><i class="fas fa-file-word"></i>Word</button>
+        <button id="export-leaderboard-excel-btn" class="bg-green-600 text-white py-1 px-3 rounded-md hover:bg-green-700 text-sm flex items-center gap-2"><i class="fas fa-file-excel"></i>Excel</button>
+    </div>
+    <div class="overflow-x-auto" id="quiz-leaderboard-table-container">
+        <table class="min-w-full bg-white border border-gray-200" id="quiz-leaderboard-table">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="py-2 px-4 border-b text-center w-16">อันดับ</th>
+                    <th class="py-2 px-4 border-b text-left">ชื่อนักเรียน</th>
+                    <th class="py-2 px-4 border-b text-center">คะแนนดีที่สุด</th>
+                    <th class="py-2 px-4 border-b text-center">ผล</th>
+                    <th class="py-2 px-4 border-b text-center">Points (ครั้งล่าสุด)</th>
+                    <th class="py-2 px-4 border-b text-center">จำนวนครั้งที่ทำ</th>
+                    <th class="py-2 px-4 border-b text-left">เวลาที่ส่งล่าสุด</th>
+                    <th class="py-2 px-4 border-b text-left">ป้ายรางวัล</th>
+                </tr>
+            </thead>
+            <tbody id="quiz-leaderboard-table-body">
+                </tbody>
+        </table>
+    </div>
+</div>
+                </div>
+            </div>
+
+            <!-- Student View -->
+            <div id="student-view" class="fade-in">
+                <div id="student-initial-view">
+                    <h2 class="text-2xl font-bold mb-4 text-indigo-700 text-center">ทำแบบทดสอบ</h2>
+                    <div id="student-entry-area" class="space-y-4 max-w-md mx-auto">
+                        <div>
+                            <label for="quiz-id-input" class="block text-sm font-medium text-gray-700 mb-1">ป้อนรหัสแบบทดสอบ:</label>
+                            <input type="text" id="quiz-id-input" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="วางรหัสที่ได้รับจากผู้ควบคุม">
+                        </div>
+                        <button id="load-quiz-btn" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center">
+                            <i class="fas fa-search mr-2"></i>ค้นหาแบบทดสอบ
+                        </button>
+                        <div class="relative flex py-3 items-center">
+                            <div class="flex-grow border-t border-gray-300"></div>
+                            <span class="flex-shrink mx-4 text-gray-500">หรือ</span>
+                            <div class="flex-grow border-t border-gray-300"></div>
+                        </div>
+                        <button id="join-live-game-btn" class="w-full bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-purple-700 flex items-center justify-center">
+                            <i class="fas fa-flag-checkered mr-2"></i>เข้าร่วมเกมสด
+                        </button>
+                    </div>
+                </div>
+
+                <!-- NEW: Student Join Live Game View -->
+                <div id="student-join-game-view" class="hidden max-w-md mx-auto">
+                     <h2 class="text-2xl font-bold mb-4 text-indigo-700 text-center">เข้าร่วมเกมสด</h2>
+                     <div class="space-y-4">
+                         <div>
+                             <label for="game-pin-input" class="block text-sm font-medium text-gray-700 mb-1">รหัสเข้าร่วม (Game PIN):</label>
+                             <input type="number" id="game-pin-input" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="12">
+                         </div>
+                         <div>
+                             <label for="nickname-input" class="block text-sm font-medium text-gray-700 mb-1">ชื่อเล่น:</label>
+                             <input type="text" id="nickname-input" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="ใส่ชื่อของคุณ...">
+                         </div>
+                         <button id="confirm-join-game-btn" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700">
+                             <i class="fas fa-sign-in-alt mr-2"></i>เข้าร่วม
+                         </button>
+                         <button id="back-to-student-initial-btn" class="w-full mt-2 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300">
+                             กลับ
+                         </button>
+                     </div>
+                </div>
+                
+                <div id="student-name-selection-view" class="hidden max-w-md mx-auto">
+                    <h2 id="student-quiz-topic" class="text-2xl font-bold mb-4 text-indigo-700 text-center"></h2>
+                    <label for="student-name-select" class="block text-sm font-medium text-gray-700 mb-1">กรุณาเลือกชื่อของคุณ:</label>
+                    <select id="student-name-select" class="w-full p-3 border border-gray-300 rounded-lg"></select>
+                    <button id="start-quiz-btn" class="w-full mt-4 bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700">
+                        <i class="fas fa-play-circle mr-2"></i>เริ่มทำแบบทดสอบ
+                    </button>
+                </div>
+                <div id="student-quiz-area" class="mt-6 hidden"></div>
+                <div id="student-result-area" class="mt-6 hidden"></div>
+                <div id="student-reading-area" class="mt-6 hidden"></div>
+            </div>
+
+            <!-- NEW: Live Game View (Covers the whole main content area) -->
+            <div id="live-game-view" class="hidden fade-in">
+                <!-- Content will be injected by JS -->
+            </div>
+
+        </main>
+        
+        <div id="user-info" class="text-center mt-6 text-xs text-gray-400">
+            User ID: <span id="user-id-display">กำลังโหลด...</span>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div id="message-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+            <p id="modal-message" class="text-lg mb-4"></p>
+            <button id="modal-close-btn" class="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700">ตกลง</button>
+        </div>
+    </div>
+
+    <div id="create-project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4">สร้างโปรเจคใหม่</h3>
+            <label for="project-name-input" class="block text-sm font-medium text-gray-700 mb-1">ชื่อโปรเจค:</label>
+            <input type="text" id="project-name-input" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="เช่น คณิตศาสตร์ ม.1 เทอม 2">
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="cancel-create-project-btn" class="bg-gray-300 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-400">ยกเลิก</button>
+                <button id="confirm-create-project-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700">สร้างโปรเจค</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full text-center">
+            <i class="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+            <h3 class="text-xl font-bold mb-2">ยืนยันการกระทำ</h3>
+            <p id="confirmation-message" class="text-gray-600 mb-6"></p>
+            <div class="flex justify-center gap-4">
+                <button id="cancel-delete-btn" class="bg-gray-300 text-gray-800 py-2 px-6 rounded-lg hover:bg-gray-400">ยกเลิก</button>
+                <button id="confirm-delete-btn" class="bg-red-600 text-white py-2 px-6 rounded-lg hover:bg-red-700">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="rename-quiz-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4">เปลี่ยนชื่อแบบทดสอบ</h3>
+            <label for="rename-quiz-input" class="block text-sm font-medium text-gray-700 mb-1">ชื่อใหม่:</label>
+            <input type="text" id="rename-quiz-input" class="w-full p-3 border border-gray-300 rounded-lg">
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="cancel-rename-quiz-btn" class="bg-gray-300 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-400">ยกเลิก</button>
+                <button id="confirm-rename-quiz-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="move-quiz-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4">ย้ายแบบทดสอบไปโปรเจคอื่น</h3>
+            <label for="move-quiz-project-select" class="block text-sm font-medium text-gray-700 mb-1">เลือกโปรเจคปลายทาง:</label>
+            <select id="move-quiz-project-select" class="w-full p-3 border border-gray-300 rounded-lg">
+                <!-- Project options will be populated here -->
+            </select>
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="cancel-move-quiz-btn" class="bg-gray-300 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-400">ยกเลิก</button>
+                <button id="confirm-move-quiz-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700">ย้าย</button>
+            </div>
+        </div>
+    </div>
+	
+	<div id="global-live-game-modal"
+     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white p-6 rounded-lg shadow-xl max-w-xl w-full">
+    <h3 class="text-xl font-bold mb-4">เริ่ม Live Game (ทุกโปรเจค)</h3>
+
+    <input id="global-quiz-search-input" type="text"
+           class="w-full p-2 border border-gray-300 rounded-lg mb-3"
+           placeholder="ค้นหาชื่อแบบทดสอบหรือชื่อโปรเจค...">
+
+    <div id="global-quiz-list"
+         class="max-h-72 overflow-y-auto border rounded-md">
+      <!-- สร้างรายการด้วย JS -->
+    </div>
+
+    <div class="flex justify-end gap-3 mt-4">
+      <button id="cancel-global-live-btn"
+              class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300">
+        ยกเลิก
+      </button>
+      <button id="confirm-global-live-btn"
+              class="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+              disabled>
+        เริ่ม
+      </button>
+    </div>
+  </div>
+</div>
+
+    <div id="quiz-settings-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full">
+            <h3 class="text-xl font-bold mb-4">ตั้งค่าแบบทดสอบ</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="modal-shuffle-select" class="block text-sm font-medium text-gray-700">การสลับข้อ/ตัวเลือก:</label>
+                    <select id="modal-shuffle-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                        <option value="none">ไม่สลับ</option>
+                        <option value="questions_only">สลับเฉพาะข้อ</option>
+                        <option value="choices_only">สลับเฉพาะตัวเลือก</option>
+                        <option value="both">สลับทั้งข้อและตัวเลือก</option>
+                    </select>
+                </div>
+                 <div>
+                    <label for="modal-results-display-select" class="block text-sm font-medium text-gray-700">การแสดงผลให้นักเรียน:</label>
+                    <select id="modal-results-display-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                        <option value="show_results_and_answers">ทราบคะแนนและเฉลยทันที</option>
+                        <option value="show_results_only">ทราบเฉพาะคะแนน (ไม่เห็นเฉลย)</option>
+                        <option value="manual_release">รอผู้ดูแลแจ้งผล</option>
+                    </select>
+                </div>
+                 <div class="flex items-center mt-2">
+    <input id="modal-adaptive-quiz-checkbox" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+    <label for="modal-adaptive-quiz-checkbox" class="ml-2 block text-sm font-medium text-gray-900">
+        เปิดใช้งานแบบทดสอบปรับพื้นฐาน
+    </label>
+</div>
+                <div class="border-t pt-4">
+                    <label for="modal-timer-mode-select" class="block text-sm font-medium text-gray-700">โหมดการจับเวลา:</label>
+                    <select id="modal-timer-mode-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                        <option value="none">ไม่มีการจับเวลา</option>
+                        <option value="whole_quiz">จับเวลาทั้งแบบทดสอบ (นาที)</option>
+                        <option value="per_question">จับเวลาทีละข้อ (วินาที)</option>
+                    </select>
+                </div>
+                <div id="modal-timer-duration-container" class="hidden">
+                    <label for="modal-timer-duration-input" id="modal-timer-duration-label" class="block text-sm font-medium text-gray-700">ระยะเวลา:</label>
+                    <input type="number" id="modal-timer-duration-input" value="10" min="1" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                </div>
+                <!-- NEW: Passing Score in Modal -->
+                <div class="border-t pt-4">
+                    <label for="modal-passing-score-input" class="block text-sm font-medium text-gray-700">คะแนนที่ผ่าน:</label>
+                    <input type="number" id="modal-passing-score-input" value="5" min="0" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="cancel-quiz-settings-btn" class="bg-gray-300 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-400">ยกเลิก</button>
+                <button id="confirm-quiz-settings-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700">บันทึก</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="quiz-status-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4">ตั้งค่าสถานะแบบทดสอบ</h3>
+            <div class="space-y-4">
+                <div class="space-y-2" id="quiz-status-options">
+                    <!-- Radio buttons will be dynamically inserted here -->
+                </div>
+                <div id="quiz-schedule-end-container" class="hidden space-y-2 border-t pt-3">
+                    <label for="quiz-end-time" class="block text-sm font-medium text-gray-700">เวลาปิด:</label>
+                    <input type="datetime-local" id="quiz-end-time" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                </div>
+                <div id="quiz-schedule-start-container" class="hidden space-y-2 border-t pt-3">
+                    <label for="quiz-start-time" class="block text-sm font-medium text-gray-700">เวลาเปิด:</label>
+                    <input type="datetime-local" id="quiz-start-time" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="cancel-quiz-status-btn" class="bg-gray-300 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-400">ยกเลิก</button>
+                <button id="confirm-quiz-status-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+<div id="quiz-editor-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-2xl font-bold text-indigo-700">แก้ไขแบบทดสอบ</h3>
+                <button id="cancel-quiz-edits-btn" class="text-gray-500 hover:text-red-600 text-3xl">&times;</button>
+            </div>
+            <div class="flex-grow overflow-y-auto pr-2">
+                <div class="mb-4">
+                    <label for="editor-quiz-topic" class="block text-sm font-medium text-gray-700 mb-1">หัวข้อแบบทดสอบ:</label>
+                    <input type="text" id="editor-quiz-topic" class="w-full p-2 border border-gray-300 rounded-lg text-lg font-semibold">
+                </div>
+                <div id="quiz-editor-questions-container" class="space-y-6">
+                    </div>
+            </div>
+            <div class="mt-6 pt-4 border-t flex justify-end gap-3">
+                <button id="cancel-quiz-edits-btn-footer" class="bg-gray-200 text-gray-800 py-2 px-6 rounded-lg hover:bg-gray-300">ยกเลิก</button>
+                <button id="save-quiz-edits-btn" class="bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700 flex items-center gap-2">
+                    <i class="fas fa-save"></i> บันทึกการแก้ไข
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Presentation Mode Container -->
+    <div id="presentation-modal" class="fixed inset-0 bg-gray-800 text-white flex-col items-center justify-center hidden z-50 p-4">
+        <button id="close-presentation-btn" class="absolute top-4 right-6 text-4xl hover:text-gray-300">&times;</button>
+        <div id="presentation-slide-container" class="w-full max-w-5xl h-full flex flex-col items-center justify-center">
+            <!-- Slide content will be injected here -->
+        </div>
+        <div class="absolute bottom-4 w-full flex justify-between items-center px-8 max-w-5xl mx-auto left-0 right-0">
+            <button id="prev-question-btn" class="bg-indigo-600 py-2 px-5 rounded-lg hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed"><i class="fas fa-arrow-left mr-2"></i>ก่อนหน้า</button>
+            <div id="slide-counter" class="text-lg font-semibold"></div>
+            <button id="next-question-btn" class="bg-indigo-600 py-2 px-5 rounded-lg hover:bg-indigo-700 disabled:bg-gray-500 disabled:cursor-not-allowed">ถัดไป<i class="fas fa-arrow-right ml-2"></i></button>
+        </div>
+    </div>
+    <!-- NEW: Student Rankings Modal -->
+    <div id="student-rankings-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-3xl w-full h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-indigo-700">ตารางผู้นำ</h3>
+                <button id="close-student-rankings-btn" class="text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+            </div>
+            <!-- Tabs -->
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-6">
+                    <button id="student-quiz-leaderboard-tab" class="main-tab active whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg">
+                        <i class="fas fa-list-ol mr-2"></i>อันดับในข้อสอบนี้
+                    </button>
+                    <button id="student-project-leaderboard-tab" class="main-tab whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg text-gray-500">
+                        <i class="fas fa-trophy mr-2"></i>อันดับรวมของโปรเจค
+                    </button>
+                </nav>
+            </div>
+            <!-- Content -->
+            <div class="flex-grow overflow-y-auto mt-4">
+                <div id="student-quiz-leaderboard-content">
+                    <table class="min-w-full bg-white">
+                        <thead class="bg-gray-100 sticky top-0">
+                            <!-- Header for Quiz Leaderboard -->
+                        </thead>
+                        <tbody id="student-quiz-leaderboard-table-body"></tbody>
+                    </table>
+                </div>
+                <div id="student-project-leaderboard-content" class="hidden">
+                     <table class="min-w-full bg-white">
+                        <thead class="bg-gray-100 sticky top-0">
+                           <!-- Header for Project Leaderboard -->
+                        </thead>
+                        <tbody id="student-project-leaderboard-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="script.min.js"></script>
+	
+</body>
+</html>
