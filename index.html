@@ -241,13 +241,14 @@
                                             </select>
                                         </div>
                                         <div>
-                                            <label for="results-display-select" class="block text-sm font-medium text-gray-700">การแสดงผลให้นักเรียน:</label>
-                                            <select id="results-display-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
-                                                <option value="show_results_and_answers">ทราบคะแนนและเฉลยทันที</option>
-                                                <option value="show_results_only">ทราบเฉพาะคะแนน (ไม่เห็นเฉลย)</option>
-                                                <option value="manual_release">รอผู้ดูแลแจ้งผล</option>
-                                            </select>
-                                        </div>
+    <label for="results-display-select" class="block text-sm font-medium text-gray-700">การแสดงผลให้นักเรียน:</label>
+    <select id="results-display-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+        <option value="show_results_and_answers">ทราบคะแนนและเฉลยทันที</option>
+        <option value="show_results_only">ทราบเฉพาะคะแนน (ไม่เห็นเฉลย)</option>
+        <option value="show_pass_fail_only">ทราบผลผ่าน/ไม่ผ่านเท่านั้น</option>
+        <option value="manual_release">รอผู้ดูแลแจ้งผล</option>
+    </select>
+</div>
                                         <!-- Adaptive Quiz Checkbox -->
                                         <div class="flex items-center mt-2">
                                             <input id="adaptive-quiz-checkbox" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
@@ -709,13 +710,14 @@
                     </select>
                 </div>
                  <div>
-                    <label for="modal-results-display-select" class="block text-sm font-medium text-gray-700">การแสดงผลให้นักเรียน:</label>
-                    <select id="modal-results-display-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
-                        <option value="show_results_and_answers">ทราบคะแนนและเฉลยทันที</option>
-                        <option value="show_results_only">ทราบเฉพาะคะแนน (ไม่เห็นเฉลย)</option>
-                        <option value="manual_release">รอผู้ดูแลแจ้งผล</option>
-                    </select>
-                </div>
+    <label for="modal-results-display-select" class="block text-sm font-medium text-gray-700">การแสดงผลให้นักเรียน:</label>
+    <select id="modal-results-display-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+        <option value="show_results_and_answers">ทราบคะแนนและเฉลยทันที</option>
+        <option value="show_results_only">ทราบเฉพาะคะแนน (ไม่เห็นเฉลย)</option>
+        <option value="show_pass_fail_only">ทราบผลผ่าน/ไม่ผ่านเท่านั้น</option>
+        <option value="manual_release">รอผู้ดูแลแจ้งผล</option>
+    </select>
+</div>
                  <div class="flex items-center mt-2">
     <input id="modal-adaptive-quiz-checkbox" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
     <label for="modal-adaptive-quiz-checkbox" class="ml-2 block text-sm font-medium text-gray-900">
