@@ -36,6 +36,7 @@
         body {
             font-family: 'Sarabun', sans-serif;
         }
+		#message-modal { z-index: 60; } /* <-- วางตรงนี้ได้เลย */
         .main-tab.active {
             border-color: #4f46e5;
             color: #4f46e5;
@@ -217,6 +218,60 @@
                                                 </optgroup>
                                             </select>
                                         </div>
+										
+										<div>
+    <label for="difficulty-level-select" class="block text-sm font-medium text-gray-700">ระดับชั้น/ความยาก:</label>
+    <select id="difficulty-level-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+        <option value="auto" selected>อัตโนมัติ (ตามหัวข้อ)</option>
+        
+        <optgroup label="🧒 ระดับปฐมวัย">
+            <option value="อนุบาล 1">อนุบาล 1 (K1)</option>
+            <option value="อนุบาล 2">อนุบาล 2 (K2)</option>
+            <option value="อนุบาล 3">อนุบาล 3 (K3)</option>
+        </optgroup>
+
+        <optgroup label="📗 ระดับประถมศึกษา">
+            <option value="ประถมศึกษาปีที่ 1">ประถมศึกษาปีที่ 1 (ป.1)</option>
+            <option value="ประถมศึกษาปีที่ 2">ประถมศึกษาปีที่ 2 (ป.2)</option>
+            <option value="ประถมศึกษาปีที่ 3">ประถมศึกษาปีที่ 3 (ป.3)</option>
+            <option value="ประถมศึกษาปีที่ 4">ประถมศึกษาปีที่ 4 (ป.4)</option>
+            <option value="ประถมศึกษาปีที่ 5">ประถมศึกษาปีที่ 5 (ป.5)</option>
+            <option value="ประถมศึกษาปีที่ 6">ประถมศึกษาปีที่ 6 (ป.6)</option>
+        </optgroup>
+        
+        <optgroup label="📘 ระดับมัธยมศึกษา">
+            <option value="มัธยมศึกษาปีที่ 1">มัธยมศึกษาปีที่ 1 (ม.1)</option>
+            <option value="มัธยมศึกษาปีที่ 2">มัธยมศึกษาปีที่ 2 (ม.2)</option>
+            <option value="มัธยมศึกษาปีที่ 3">มัธยมศึกษาปีที่ 3 (ม.3)</option>
+            <option value="มัธยมศึกษาปีที่ 4">มัธยมศึกษาปีที่ 4 (ม.4)</option>
+            <option value="มัธยมศึกษาปีที่ 5">มัธยมศึกษาปีที่ 5 (ม.5)</option>
+            <option value="มัธยมศึกษาปีที่ 6">มัธยมศึกษาปีที่ 6 (ม.6)</option>
+        </optgroup>
+
+        <optgroup label="🎓 ระดับอุดมศึกษา">
+            <option value="ระดับปริญญาตรี">ปริญญาตรี</option>
+            <option value="ระดับปริญญาโท">ปริญญาโท</option>
+            <option value="ระดับปริญญาเอก">ปริญญาเอก</option>
+        </optgroup>
+    </select>
+</div>
+
+<div>
+    <label class="block text-sm font-medium text-gray-700">เจาะจงหัวข้อคณิตศาสตร์ (เลือกได้หลายข้อ):</label>
+    <details class="mt-1 border border-gray-300 rounded-lg bg-white">
+        <summary class="p-2 cursor-pointer text-gray-500">
+            คลิกเพื่อเลือกหัวข้อ... <span id="selected-topics-count" class="font-bold text-indigo-600"></span>
+        </summary>
+        
+        <div class="sticky top-0 bg-white p-2 border-b border-gray-200">
+            <input type="text" id="math-topic-search-input" placeholder="ค้นหาหัวข้อ..." class="w-full p-2 border border-gray-300 rounded-lg text-sm">
+        </div>
+        <div id="math-topics-checkbox-container" class="p-3 max-h-60 overflow-y-auto">
+            <p class="text-gray-400">กำลังโหลดรายการ...</p>
+        </div>
+    </details>
+</div>								
+	
                                         <div class="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label for="num-questions" class="block text-sm font-medium text-gray-700">จำนวนข้อ:</label>
@@ -803,6 +858,9 @@
                     <i class="fas fa-save"></i> บันทึกการแก้ไข
                 </button>
             </div>
+			
+			<button id="auto-fix-latex-btn" class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">แก้ไขโค้ดคณิตศาสตร์อัตโนมัติ</button>
+			
         </div>
     </div>
 
