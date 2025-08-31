@@ -312,6 +312,12 @@
     <!-- เนื้อหาคลังข้อสอบจะถูกสร้างโดย JavaScript -->
 </div>
 
+                                     <div class="flex items-center mb-4">
+    <input id="force-math-checkbox" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+    <label for="force-math-checkbox" class="ml-3 block text-sm font-medium text-gray-800">
+        สร้างแบบทดสอบตามหัวข้อปกติ (ไม่บังคับคณิตศาสตร์)
+    </label>
+</div>
                                     <!-- NEW: Checkbox for including images -->
                                     <div class="flex items-center my-4">
                                         <input id="include-images-checkbox" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
@@ -322,12 +328,6 @@
                                     <!-- Topic Input -->
                                     <div id="topic-input-area" class="space-y-4">
                                         <input type="text" id="topic-input" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="เช่น ทฤษฎีบทพีทาโกรัส">
-										<div class="flex items-center my-3">
-        <input id="force-math-checkbox" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-        <label for="force-math-checkbox" class="ml-2 block text-sm text-gray-900">
-            บังคับเป็นโจทย์คณิตศาสตร์ (ไม่ว่าจะพิมพ์หัวข้ออะไร)
-        </label>
-    </div>
                                         <button id="generate-from-topic-btn" class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-indigo-700 flex items-center justify-center"><i class="fas fa-cogs mr-2"></i>สร้างแบบทดสอบ</button>
                                     </div>
                                     <!-- Text Input -->
