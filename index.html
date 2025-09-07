@@ -165,6 +165,10 @@
   class="bg-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-purple-700 transition-all duration-300 flex items-center shrink-0">
   <i class="fas fa-bolt mr-2"></i>Live Game
 </button>
+<button id="open-quiz-bank-btn"
+  class="bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-all duration-300 flex items-center shrink-0">
+  <i class="fas fa-book mr-2"></i>คลังแบบทดสอบ
+</button>
                         </div>
                     </div>
                     <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -257,19 +261,48 @@
 </div>
 
 <div>
+    <label for="question-complexity-select" class="block text-sm font-medium text-gray-700">ระดับความซับซ้อนของคำถาม (Bloom's Taxonomy):</label>
+    <select id="question-complexity-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+        <option value="mixed" selected>แบบคละ (อัตโนมัติ)</option>
+        <option value="remembering">ระดับการจำ (Remembering)</option>
+        <option value="understanding">ระดับความเข้าใจ (Understanding)</option>
+        <option value="applying">ระดับการนำไปใช้ (Applying)</option>
+        <option value="analyzing">ระดับการวิเคราะห์ (Analyzing)</option>
+        <option value="evaluating">ระดับการประเมินค่า (Evaluating)</option>
+        <option value="creating">ระดับการสร้างสรรค์ (Creating)</option>
+    </select>
+</div>
+
+<div>
     <label class="block text-sm font-medium text-gray-700">เจาะจงหัวข้อคณิตศาสตร์ (เลือกได้หลายข้อ):</label>
     <details class="mt-1 border border-gray-300 rounded-lg bg-white">
         <summary class="p-2 cursor-pointer text-gray-500">
             คลิกเพื่อเลือกหัวข้อ... <span id="selected-topics-count" class="font-bold text-indigo-600"></span>
         </summary>
         
-        <div class="sticky top-0 bg-white p-2 border-b border-gray-200">
+        <div class="sticky top-0 bg-white p-2 border-b border-gray-200 flex justify-between items-center gap-4">
             <input type="text" id="math-topic-search-input" placeholder="ค้นหาหัวข้อ..." class="w-full p-2 border border-gray-300 rounded-lg text-sm">
+            <div class="flex items-center gap-3 shrink-0">
+                <button id="select-all-topics-btn" class="text-xs font-semibold text-blue-600 hover:underline">เลือกทั้งหมด</button>
+                <button id="deselect-all-topics-btn" class="text-xs font-semibold text-gray-500 hover:underline">ยกเลิกทั้งหมด</button>
+            </div>
         </div>
         <div id="math-topics-checkbox-container" class="p-3 max-h-60 overflow-y-auto">
             <p class="text-gray-400">กำลังโหลดรายการ...</p>
         </div>
     </details>
+</div>
+
+<div class="mt-3 p-3 bg-gray-100 rounded-lg">
+    <label for="custom-math-topic-input" class="block text-sm font-medium text-gray-700 mb-1">
+        เพิ่มหัวข้อของคุณเอง:
+    </label>
+    <div class="flex items-center gap-2">
+        <input type="text" id="custom-math-topic-input" placeholder="เช่น ทฤษฎีบทเศษเหลือ..." class="w-full p-2 border border-gray-300 rounded-lg text-sm">
+        <button id="add-custom-math-topic-btn" class="bg-blue-600 text-white py-2 px-3 rounded-lg font-semibold hover:bg-blue-700 text-sm shrink-0">
+            <i class="fas fa-plus"></i> เพิ่ม
+        </button>
+    </div>
 </div>								
 	
                                         <div class="grid grid-cols-2 gap-4">
@@ -358,13 +391,40 @@
                                         <button id="text-tab" class="generation-tab py-2 px-4 font-semibold text-gray-500"><i class="fas fa-file-alt mr-2"></i>จากเนื้อหา</button>
                                         <button id="file-tab" class="generation-tab py-2 px-4 font-semibold text-gray-500"><i class="fas fa-file-upload mr-2"></i>จากไฟล์</button>
                                         <button id="link-tab" class="generation-tab py-2 px-4 font-semibold text-gray-500"><i class="fas fa-link mr-2"></i>จากลิงก์</button>
+										<button id="blueprint-tab" class="generation-tab py-2 px-4 font-semibold text-gray-500"><i class="fas fa-map-marked-alt mr-2"></i>จาก Test Blueprint</button>
+										<button id="parallel-test-tab" class="generation-tab py-2 px-4 font-semibold text-gray-500"><i class="fas fa-clone mr-2"></i>สร้างข้อสอบคู่ขนาน</button>
                                         <button id="worksheet-tab" class="generation-tab py-2 px-4 font-semibold text-gray-500"><i class="fas fa-print mr-2"></i>สร้างใบงาน</button>
-                                        <button id="bank-tab" class="generation-tab py-2 px-4 font-semibold text-gray-500"><i class="fas fa-university mr-2"></i>จากคลังข้อสอบ</button>
                                     </div>
 
-                                    <!-- Question Bank Input -->
-<div id="bank-input-area" class="hidden space-y-4">
-    <!-- เนื้อหาคลังข้อสอบจะถูกสร้างโดย JavaScript -->
+<div id="blueprint-input-area" class="hidden space-y-4">
+    <label for="blueprint-upload-input" class="block text-sm font-medium text-gray-700">เลือกไฟล์ Test Blueprint (.pdf):</label>
+    <input type="file" id="blueprint-upload-input" class="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf">
+	
+	<div class="mt-4 pt-4 border-t">
+    <label for="reference-pdf-upload" class="block text-sm font-medium text-gray-700">
+        (แนะนำ) แนบไฟล์ข้อสอบตัวอย่างเพื่ออ้างอิงความยาก (.pdf):
+    </label>
+    <input type="file" id="reference-pdf-upload" class="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100" accept=".pdf">
+    <p class="text-xs text-gray-500 mt-1">
+        AI จะใช้สไตล์และระดับความยากจากไฟล์นี้เป็นแนวทางในการสร้างข้อสอบชุดใหม่ แต่จะไม่คัดลอกโจทย์มาโดยตรง
+    </p>
+</div>
+	
+    <p class="text-xs text-gray-500">AI จะวิเคราะห์โครงสร้าง, จำนวนข้อ, และหัวข้อจากไฟล์นี้เพื่อสร้างแบบทดสอบที่แม่นยำตาม Blueprint</p>
+
+    <button id="generate-from-blueprint-btn" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+        <i class="fas fa-cogs mr-2"></i>สร้างแบบทดสอบตาม Blueprint
+    </button>
+</div>
+
+<div id="parallel-test-input-area" class="hidden space-y-4">
+    <label for="parallel-test-upload-input" class="block text-sm font-medium text-gray-700">เลือกไฟล์ข้อสอบต้นฉบับ (.pdf):</label>
+    <input type="file" id="parallel-test-upload-input" class="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf">
+    <p class="text-xs text-gray-500">AI จะวิเคราะห์ข้อสอบจากไฟล์นี้ เพื่อสร้างชุดข้อสอบใหม่ที่วัดผลในเรื่องเดียวกันแต่ใช้โจทย์คนละชุด</p>
+
+    <button id="generate-from-parallel-test-btn" class="w-full bg-teal-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-teal-700 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+        <i class="fas fa-cogs mr-2"></i>สร้างแบบทดสอบคู่ขนาน
+    </button>
 </div>
 
                                      <div class="flex items-center mb-4">
@@ -539,6 +599,12 @@
                             <button id="export-word-btn" class="bg-blue-600 text-white py-1 px-3 rounded-md hover:bg-blue-700 text-sm flex items-center gap-2"><i class="fas fa-file-word"></i>Word</button>
                             <button id="export-excel-btn" class="bg-green-600 text-white py-1 px-3 rounded-md hover:bg-green-700 text-sm flex items-center gap-2"><i class="fas fa-file-excel"></i>Excel</button>
                         </div>
+						
+						                        <h3 class="text-xl font-semibold mb-2 mt-4">ตารางสรุปคำตอบรายบุคคล</h3>
+                        <p class="text-sm text-gray-500 mb-2">ตารางนี้จะแสดงคำตอบของนักเรียนจากการทำข้อสอบครั้งล่าสุด</p>
+                        <div id="answer-grid-container" class="overflow-x-auto mb-8 border border-gray-200 rounded-lg">
+                            </div>
+						
                         <div class="overflow-x-auto" id="results-table-container">
                             <table class="min-w-full bg-white border border-gray-200" id="results-table">
                                 <thead class="bg-gray-100">
@@ -670,6 +736,62 @@
             <button id="modal-close-btn" class="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700">ตกลง</button>
         </div>
     </div>
+	
+	<div id="export-pdf-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+        <h3 class="text-xl font-bold mb-6 text-center">เลือกรูปแบบการ Export PDF</h3>
+        <div class="space-y-4">
+            <button id="export-compact-pdf-btn" class="w-full flex items-center justify-center gap-3 bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-all">
+                <i class="fas fa-columns fa-lg"></i>
+                <div>
+                    <p>แบบกระชับ (2 คอลัมน์)</p>
+                    <p class="text-xs font-normal">สำหรับพิมพ์แจกนักเรียน, ประหยัดกระดาษ</p>
+                </div>
+            </button>
+            <button id="export-tutor-pdf-btn" class="w-full flex items-center justify-center gap-3 bg-teal-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-teal-700 transition-all">
+                <i class="fas fa-chalkboard-teacher fa-lg"></i>
+                <div>
+                    <p>แบบติวข้อสอบ (ข้อละหน้า)</p>
+                    <p class="text-xs font-normal">สำหรับใช้สอน, มีพื้นที่จดบันทึก</p>
+                </div>
+            </button>
+        </div>
+        <div class="flex justify-end mt-8">
+            <button id="cancel-export-pdf-btn" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300">ยกเลิก</button>
+        </div>
+    </div>
+</div>
+	
+	<div id="comparison-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-5xl w-full h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center mb-2">
+            <h3 id="comparison-title" class="text-2xl font-bold text-indigo-700">เปรียบเทียบผลการเรียนรู้</h3>
+            <button id="close-comparison-modal-btn" class="text-gray-500 hover:text-red-600 text-3xl">&times;</button>
+        </div>
+
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-6">
+                <button id="comparison-overall-tab" class="main-tab active whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg">
+                    <i class="fas fa-chart-pie mr-2"></i>ภาพรวม
+                </button>
+                <button id="comparison-individual-tab" class="main-tab whitespace-nowrap py-3 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-user-friends mr-2"></i>รายบุคคล
+                </button>
+            </nav>
+        </div>
+        
+        <div class="flex-grow overflow-y-auto pt-4 bg-gray-50 p-2 md:p-6">
+            <div id="comparison-overall-content">
+                </div>
+            <div id="comparison-individual-content" class="hidden">
+                </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t flex justify-end">
+            <button id="close-comparison-modal-footer-btn" class="bg-gray-200 text-gray-800 py-2 px-6 rounded-lg hover:bg-gray-300">ปิด</button>
+        </div>
+    </div>
+</div>
 
     <div id="create-project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
         <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
@@ -707,6 +829,25 @@
             </div>
         </div>
     </div>
+	
+	<div id="lesson-plan-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center mb-4 border-b pb-3">
+            <h3 id="lesson-plan-title" class="text-2xl font-bold text-indigo-700">แผนการสอนที่ AI แนะนำ</h3>
+            <button id="close-lesson-plan-modal-btn" class="text-gray-500 hover:text-red-600 text-3xl">&times;</button>
+        </div>
+        
+        <div id="lesson-plan-content" class="flex-grow overflow-y-auto bg-gray-50 p-8">
+            </div>
+
+        <div class="mt-6 pt-4 border-t flex justify-end gap-3">
+            <button id="close-lesson-plan-modal-footer-btn" class="bg-gray-200 text-gray-800 py-2 px-6 rounded-lg hover:bg-gray-300">ปิด</button>
+            <button id="export-lesson-pdf-btn" class="bg-red-600 text-white py-2 px-6 rounded-lg hover:bg-red-700 flex items-center gap-2">
+                <i class="fas fa-file-pdf"></i> Export เป็น PDF
+            </button>
+        </div>
+    </div>
+</div>
 
     <div id="rename-quiz-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
         <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
@@ -737,7 +878,9 @@
 	<div id="global-live-game-modal"
      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
   <div class="bg-white p-6 rounded-lg shadow-xl max-w-xl w-full">
-    <h3 class="text-xl font-bold mb-4">เริ่ม Live Game (ทุกโปรเจค)</h3>
+    <h3 class="text-xl font-bold mb-4">เริ่ม Live Game (ทุกโปรเจค)
+    <span id="global-live-game-count" class="text-base font-normal text-gray-500 ml-2"></span>
+</h3>
 
     <input id="global-quiz-search-input" type="text"
            class="w-full p-2 border border-gray-300 rounded-lg mb-3"
@@ -759,6 +902,27 @@
         เริ่ม
       </button>
     </div>
+  </div>
+</div>
+
+<div id="quiz-bank-modal"
+     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white p-6 rounded-lg shadow-xl max-w-xl w-full flex flex-col">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold">คลังแบบทดสอบทั้งหมด
+    <span id="quiz-bank-count" class="text-base font-normal text-gray-500 ml-2"></span>
+</h3>
+        <button id="cancel-quiz-bank-btn" class="text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+    </div>
+
+    <input id="bank-quiz-search-input" type="text"
+           class="w-full p-2 border border-gray-300 rounded-lg mb-3"
+           placeholder="ค้นหาชื่อแบบทดสอบ, ชื่อโปรเจค, หรือรหัสแบบทดสอบ...">
+
+    <div id="bank-quiz-list"
+         class="max-h-96 overflow-y-auto border rounded-md">
+      </div>
+
   </div>
 </div>
 
