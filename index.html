@@ -19,6 +19,8 @@
     <!-- Libraries for File Reading -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.18/mammoth.browser.min.js"></script>
+	
+	<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <!-- MathJax for rendering math formulas -->
     <script>
@@ -33,10 +35,40 @@
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
+	
+	/* ในไฟล์ A.html ภายใน <style> */
+.ai-content h1, .ai-content h2, .ai-content h3, .ai-content h4 { font-weight: 700; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+.ai-content h1 { font-size: 1.8rem; } .ai-content h2 { font-size: 1.5rem; } .ai-content h3 { font-size: 1.25rem; }
+.ai-content p { margin-bottom: 1rem; line-height: 1.7; }
+.ai-content ul, .ai-content ol { margin-left: 1.5rem; margin-bottom: 1rem; list-style-position: outside; }
+.ai-content li { margin-bottom: 0.5rem; }
+.ai-content blockquote { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 0.75rem 1rem; margin: 1rem 0; border-radius: 0.25rem; color: #1e40af; }
+.ai-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+.ai-content th, .ai-content td { border: 1px solid #e2e8f0; padding: 0.75rem 1rem; text-align: left; }
+.ai-content th { background-color: #fefce8; font-weight: 600; }
+.ai-content code { background-color: #f1f5f9; color: #475569; padding: 0.2em 0.4em; border-radius: 3px; }
+.ai-content svg { max-width: 100%; height: auto; margin: 1rem auto; display: block; }
+.section-header { display: flex; align-items: center; font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; color: #1e3a8a; border-bottom: 2px solid #dbeafe; padding-bottom: 0.5rem; }
+.section-header i { margin-right: 0.75rem; color: #3b82f6; }
+	
         body {
             font-family: 'Sarabun', sans-serif;
         }
 		#message-modal { z-index: 60; } /* <-- วางตรงนี้ได้เลย */
+		
+		.correct {
+    background-color: #dcfce7 !important;
+    border-color: #22c55e !important;
+    color: #166534;
+    font-weight: bold;
+}
+
+.incorrect {
+    background-color: #fee2e2 !important;
+    border-color: #ef4444 !important;
+    color: #991b1b;
+}
+		
         .main-tab.active {
             border-color: #4f46e5;
             color: #4f46e5;
@@ -279,7 +311,7 @@ body.dimmed #dim-overlay {
                     <!-- NEW: Starred Quizzes Section -->
                     <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
                         <h2 class="text-2xl font-bold text-indigo-700">โปรเจคทั้งหมด</h2>
-                         <div class="flex items-center gap-2 w-full md:w-auto">
+                         <div class="flex items-center gap-2 w-full md:w-auto flex-wrap md:justify-end">
 						 
 						         <div id="view-switcher" class="flex items-center p-1 bg-gray-100 rounded-lg mr-2">
             <button id="grid-view-btn" class="px-3 py-1 rounded-md text-gray-700 view-btn" title="มุมมองตาราง">
@@ -308,6 +340,10 @@ body.dimmed #dim-overlay {
 <button id="open-quiz-bank-btn"
   class="bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-all duration-300 flex items-center shrink-0">
   <i class="fas fa-book mr-2"></i>คลังแบบทดสอบ
+</button>
+
+<button id="open-blueprint-projects-btn" class="bg-teal-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-teal-700 transition-all duration-300 flex items-center shrink-0">
+    <i class="fas fa-sitemap mr-2"></i>โปรเจค Blueprint
 </button>
 
 <button id="update-old-quizzes-btn"
@@ -624,47 +660,68 @@ body.dimmed #dim-overlay {
                                     </div>
 
 <div id="blueprint-input-area" class="hidden space-y-4">
-    <label for="blueprint-upload-input" class="block text-sm font-medium text-gray-700">เลือกไฟล์ Test Blueprint (.pdf):</label>
-    <input type="file" id="blueprint-upload-input" class="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf">
-	
-	<div id="blueprint-options-container" class="hidden mt-4 pt-4 border-t border-gray-200 space-y-3">
-    
-    <div class="flex items-center p-3 bg-indigo-50 rounded-lg">
-        <input id="separate-by-content-checkbox" type="checkbox" class="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-        <label for="separate-by-content-checkbox" class="ml-3 block font-medium text-gray-800">
-            สร้างแบบทดสอบแยกตามเนื้อหา (สำหรับติวเฉพาะเรื่อง)
+
+    <label class="block text-sm font-medium text-gray-700">ปุ่มลัด (Blueprint Shortcuts):</label>
+    <div id="blueprint-shortcut-container" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <p id="shortcuts-loading-msg" class="col-span-full text-center text-gray-500 py-4">กำลังโหลด...</p>
+    </div>
+    <div class="flex justify-between items-center mt-2">
+        <button id="add-shortcut-btn" class="text-sm text-blue-600 font-semibold hover:underline">
+            <i class="fas fa-plus-circle mr-1"></i>เพิ่มทางลัดใหม่
+        </button>
+        <label for="blueprint-upload-input" class="text-sm text-gray-600 font-semibold hover:underline cursor-pointer">
+            <i class="fas fa-upload mr-1"></i>หรือ อัปโหลดไฟล์ด้วยตนเอง
         </label>
+        <input type="file" id="blueprint-upload-input" class="hidden" accept=".pdf">
+    </div>
+    <div id="blueprint-options-container" class="hidden mt-4 pt-4 border-t border-gray-200 space-y-3">
+        <button id="save-blueprint-as-project-btn" class="hidden w-full bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 mb-4 items-center justify-center">
+            <i class="fas fa-save mr-2"></i> บันทึกหัวข้อทั้งหมดเป็น Project
+        </button>
+        <div class="flex items-center p-3 bg-indigo-50 rounded-lg">
+            <input id="separate-by-content-checkbox" type="checkbox" class="h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+            <label for="separate-by-content-checkbox" class="ml-3 block font-medium text-gray-800">
+                สร้างแบบทดสอบแยกตามเนื้อหา (สำหรับติวเฉพาะเรื่อง)
+            </label>
+        </div>
+        <div id="blueprint-topics-list-container" class="hidden p-3 border rounded-md bg-white">
+            <p class="text-sm font-semibold mb-2 text-gray-700">กรุณาเลือกหัวข้อที่ต้องการสร้างแบบทดสอบ:</p>
+            <div id="blueprint-topics-list" class="space-y-2">
+                <p class="text-gray-400">กำลังวิเคราะห์หัวข้อ...</p>
+            </div>
+            <p class="text-xs text-gray-500 mt-3">*จำนวนข้อและรูปแบบจะอิงตามการตั้งค่าปัจจุบัน ไม่ใช่จาก Blueprint</p>
+        </div>
     </div>
 
-    <div id="blueprint-topics-list-container" class="hidden p-3 border rounded-md bg-white">
-        <p class="text-sm font-semibold mb-2 text-gray-700">กรุณาเลือกหัวข้อที่ต้องการสร้างแบบทดสอบ:</p>
-        <div id="blueprint-topics-list" class="space-y-2">
-            <p class="text-gray-400">กำลังวิเคราะห์หัวข้อ...</p>
-        </div>
-        <p class="text-xs text-gray-500 mt-3">*จำนวนข้อและรูปแบบจะอิงตามการตั้งค่าปัจจุบัน ไม่ใช่จาก Blueprint</p>
+    <div class="mt-4 pt-4 border-t">
+        <label for="reference-pdf-upload" class="block text-sm font-medium text-gray-700">
+            (ตัวเลือกเสริม) แนบไฟล์ข้อสอบตัวอย่างเพื่ออ้างอิงความยาก (.pdf, .txt):
+        </label>
+        <input type="file" id="reference-pdf-upload" class="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100" accept=".pdf,.txt">
+        <p class="text-xs text-gray-500 mt-1">
+            AI จะใช้สไตล์และระดับความยากจากไฟล์นี้เป็นแนวทางในการสร้างข้อสอบชุดใหม่ แต่จะไม่คัดลอกโจทย์มาโดยตรง
+        </p>
     </div>
-</div>
-	
-	<div class="mt-4 pt-4 border-t">
-    <label for="reference-pdf-upload" class="block text-sm font-medium text-gray-700">
-        (แนะนำ) แนบไฟล์ข้อสอบตัวอย่างเพื่ออ้างอิงความยาก (.pdf):
-    </label>
-    <input type="file" id="reference-pdf-upload" class="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100" accept=".pdf">
-    <p class="text-xs text-gray-500 mt-1">
-        AI จะใช้สไตล์และระดับความยากจากไฟล์นี้เป็นแนวทางในการสร้างข้อสอบชุดใหม่ แต่จะไม่คัดลอกโจทย์มาโดยตรง
-    </p>
-</div>
-	
-    <p class="text-xs text-gray-500">AI จะวิเคราะห์โครงสร้าง, จำนวนข้อ, และหัวข้อจากไฟล์นี้เพื่อสร้างแบบทดสอบที่แม่นยำตาม Blueprint</p>
 
     <button id="generate-from-blueprint-btn" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
-        <i class="fas fa-cogs mr-2"></i>สร้างแบบทดสอบตาม Blueprint
+        <i class="fas fa-cogs mr-2"></i>สร้างแบบทดสอบตาม Blueprint (จากไฟล์ที่อัปโหลด)
     </button>
 </div>
 
 <div id="parallel-test-input-area" class="hidden space-y-4">
-    <label for="parallel-test-upload-input" class="block text-sm font-medium text-gray-700">เลือกไฟล์ข้อสอบต้นฉบับ (.pdf):</label>
-    <input type="file" id="parallel-test-upload-input" class="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf">
+<div class="mt-4 pt-4 border-t">
+    <label class="block text-sm font-medium text-gray-700">ปุ่มลัดข้อสอบต้นฉบับ (Source Shortcuts):</label>
+    <div id="parallel-shortcut-container" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2">
+        <p id="parallel-shortcuts-loading-msg" class="col-span-full text-center text-gray-500 py-4">กำลังโหลด...</p>
+    </div>
+    <div class="flex justify-between items-center mt-2">
+        <button id="add-parallel-shortcut-btn" class="text-sm text-blue-600 font-semibold hover:underline">
+            <i class="fas fa-plus-circle mr-1"></i>เพิ่มทางลัดใหม่
+        </button>
+    </div>
+</div>
+    <label for="parallel-test-upload-input" class="block text-sm font-medium text-gray-700">เลือกไฟล์ข้อสอบต้นฉบับ (.pdf, .txt):</label>
+    <input type="file" id="parallel-test-upload-input" class="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf,.txt">
     <p class="text-xs text-gray-500">AI จะวิเคราะห์ข้อสอบจากไฟล์นี้ เพื่อสร้างชุดข้อสอบใหม่ที่วัดผลในเรื่องเดียวกันแต่ใช้โจทย์คนละชุด</p>
 
     <button id="generate-from-parallel-test-btn" class="w-full bg-teal-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-teal-700 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
@@ -683,8 +740,19 @@ body.dimmed #dim-overlay {
                                     </div>
                                     <!-- File Input -->
                                     <div id="file-input-area" class="hidden space-y-4">
-    <label for="file-upload-input" class="block text-sm font-medium text-gray-700">เลือกไฟล์ PDF หรือ Word (.docx):</label>
-    <input type="file" id="file-upload-input" class="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf,.docx">
+									<div class="mt-4 pt-4 border-t">
+    <label class="block text-sm font-medium text-gray-700">ปุ่มลัดจากไฟล์ (File Shortcuts):</label>
+    <div id="file-shortcut-container" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2">
+        <p id="file-shortcuts-loading-msg" class="col-span-full text-center text-gray-500 py-4">กำลังโหลด...</p>
+    </div>
+    <div class="flex justify-between items-center mt-2">
+        <button id="add-file-shortcut-btn" class="text-sm text-blue-600 font-semibold hover:underline">
+            <i class="fas fa-plus-circle mr-1"></i>เพิ่มทางลัดใหม่
+        </button>
+    </div>
+</div>
+    <label for="file-upload-input" class="block text-sm font-medium text-gray-700">เลือกไฟล์ PDF, Word (.docx), หรือ Text (.txt):</label>
+    <input type="file" id="file-upload-input" class="w-full p-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf,.docx,.txt">
 	
 	<div class="flex items-center my-3 p-3 bg-indigo-50 rounded-lg">
     <input id="separate-by-content-from-file-checkbox" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
@@ -716,6 +784,89 @@ body.dimmed #dim-overlay {
         <i class="fas fa-cogs mr-2"></i>สร้างแบบทดสอบ
     </button>
 </div>
+
+<div id="file-shortcut-editor-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
+        <h3 id="file-shortcut-modal-title" class="text-xl font-bold mb-4">แก้ไขปุ่มลัดจากไฟล์</h3>
+        <div class="space-y-4">
+            <div>
+                <label for="file-shortcut-name-input" class="block text-sm font-medium text-gray-700">ชื่อปุ่มลัด:</label>
+                <input type="text" id="file-shortcut-name-input" class="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="เช่น ข้อสอบกลางภาค .pdf">
+            </div>
+            <div>
+                <label for="file-shortcut-url-input" class="block text-sm font-medium text-gray-700">ลิงก์ไฟล์ (.pdf, .txt จาก Google Drive):</label>
+                <input type="url" id="file-shortcut-url-input" class="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="วางลิงก์ที่แชร์แบบ 'ทุกคนที่มีลิงก์' ที่นี่">
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+            <input type="hidden" id="file-shortcut-id-input">
+            <button id="cancel-file-shortcut-edit-btn" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300">ยกเลิก</button>
+            <button id="save-file-shortcut-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700">บันทึก</button>
+        </div>
+    </div>
+</div>
+
+<div id="additional-file-shortcuts-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+<div class="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full flex flex-col h-[80vh]">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold text-gray-700">ปุ่มลัดจากไฟล์ทั้งหมด</h3>
+        <button id="close-additional-file-shortcuts-btn" class="text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+    </div>
+
+    <div class="flex items-center border-b border-gray-200 mb-3 flex-shrink-0">
+        <nav id="file-shortcut-tabs-nav" class="flex-grow -mb-px flex space-x-4 overflow-x-auto" aria-label="Tabs">
+            </nav>
+        <button id="add-file-shortcut-tab-btn" class="ml-4 text-blue-600 hover:text-blue-800 font-semibold text-sm whitespace-nowrap py-3" title="เพิ่มแท็บใหม่">
+            <i class="fas fa-plus-circle"></i> เพิ่มแท็บ
+        </button>
+    </div>
+
+    <div id="additional-file-shortcuts-list" class="flex-grow overflow-y-auto border rounded-md">
+        </div>
+</div>
+</div>
+
+<div id="parallel-shortcut-editor-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
+        <h3 id="parallel-shortcut-modal-title" class="text-xl font-bold mb-4">แก้ไขปุ่มลัดข้อสอบต้นฉบับ</h3>
+        <div class="space-y-4">
+            <div>
+                <label for="parallel-shortcut-name-input" class="block text-sm font-medium text-gray-700">ชื่อปุ่มลัด:</label>
+                <input type="text" id="parallel-shortcut-name-input" class="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="เช่น O-NET ป.6 ปี 65">
+            </div>
+            <div>
+                <label for="parallel-shortcut-url-input" class="block text-sm font-medium text-gray-700">ลิงก์ไฟล์ต้นฉบับ (.pdf, .txt จาก Google Drive):</label>
+                <input type="url" id="parallel-shortcut-url-input" class="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="วางลิงก์ที่แชร์แบบ 'ทุกคนที่มีลิงก์' ที่นี่">
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+            <input type="hidden" id="parallel-shortcut-id-input">
+            <button id="cancel-parallel-shortcut-edit-btn" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300">ยกเลิก</button>
+            <button id="save-parallel-shortcut-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700">บันทึก</button>
+        </div>
+    </div>
+</div>
+
+<div id="additional-parallel-shortcuts-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+<div class="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full flex flex-col h-[80vh]">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold text-gray-700">ปุ่มลัดข้อสอบต้นฉบับทั้งหมด</h3>
+        <button id="close-additional-parallel-shortcuts-btn" class="text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+    </div>
+
+    <div class="flex items-center border-b border-gray-200 mb-3 flex-shrink-0">
+        <nav id="parallel-shortcut-tabs-nav" class="flex-grow -mb-px flex space-x-4 overflow-x-auto" aria-label="Tabs">
+            </nav>
+        <button id="add-parallel-shortcut-tab-btn" class="ml-4 text-blue-600 hover:text-blue-800 font-semibold text-sm whitespace-nowrap py-3" title="เพิ่มแท็บใหม่">
+            <i class="fas fa-plus-circle"></i> เพิ่มแท็บ
+        </button>
+    </div>
+
+    <div id="additional-parallel-shortcuts-list" class="flex-grow overflow-y-auto border rounded-md">
+        </div>
+</div>
+</div>
+
                                     <!-- Link Input -->
                                     <div id="link-input-area" class="hidden space-y-4">
                                         <input type="url" id="link-url-input" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="วาง URL ของบทความที่นี่...">
@@ -925,6 +1076,33 @@ body.dimmed #dim-overlay {
 </div>
 
                 </div>
+				
+<div id="blueprint-project-manager-view" class="hidden fade-in">
+    <button id="back-to-dashboard-from-bp-btn" class="mb-4 text-indigo-600 hover:underline">
+        <i class="fas fa-arrow-left mr-2"></i>กลับไปหน้า Dashboard
+    </button>
+
+    <div class="flex justify-between items-center mb-4">
+        <h2 id="bp-project-title" class="text-3xl font-bold text-teal-700"></h2>
+        <button id="bp-quiz-settings-btn" class="bg-orange-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-orange-600 flex items-center gap-2">
+            <i class="fas fa-cog"></i> ตั้งค่าแบบทดสอบ
+        </button>
+    </div>
+
+    <div class="bg-gray-50 p-4 rounded-lg">
+        <h3 class="font-semibold mb-2">รายการหัวข้อในโปรเจค:</h3>
+        
+        <div id="bp-topic-list-container" class="space-y-2">
+            </div>
+        
+        <div class="mt-4 pt-4 border-t">
+            <button id="bp-add-topic-btn" class="bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 text-sm">
+                <i class="fas fa-plus mr-2"></i>เพิ่มหัวข้อใหม่
+            </button>
+        </div>
+    </div>
+</div>
+				
             </div>
 
             <!-- Student View -->
@@ -1104,6 +1282,35 @@ body.dimmed #dim-overlay {
     </div>
 </div>
 
+<div id="lesson-view-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 p-4 flex items-center justify-center">
+    <div class="bg-white w-full max-w-5xl h-[95vh] rounded-lg shadow-xl flex flex-col">
+ <div class="flex justify-between items-center p-4 border-b">
+    <h3 id="lesson-view-title" class="text-2xl font-bold text-indigo-700"></h3>
+    <div class="flex items-center gap-4">
+        <button id="fix-lesson-latex-btn" class="bg-yellow-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-yellow-600 transition-colors text-sm flex items-center gap-2">
+            <i class="fas fa-magic-wand-sparkles"></i> แก้ไขสูตร
+        </button>
+        <button id="export-lesson-to-pdf-btn" class="bg-red-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-700 transition-colors text-sm flex items-center gap-2">
+            <i class="fas fa-file-pdf"></i> บันทึกเป็น PDF
+        </button>
+        <button id="close-lesson-view-btn" class="text-gray-500 hover:text-red-600 text-3xl">&times;</button>
+    </div>
+</div>
+        <div id="lesson-view-content" class="flex-grow overflow-y-auto p-6 bg-gray-50">
+            <div id="lesson-loader" class="hidden text-center py-16">
+                <div class="loader mx-auto"></div>
+                <p id="lesson-loader-text" class="mt-4 text-gray-600">AI กำลังสร้างบทเรียน... กรุณารอสักครู่</p>
+            </div>
+            <div id="lesson-sections-container" class="hidden space-y-6 ai-content">
+                <div class="p-6 bg-white rounded-lg shadow-sm border"><h3 class="section-header"><i class="fas fa-bullseye"></i>POINT ประเด็นดี</h3><div id="pointContent"></div></div>
+                <div class="p-6 bg-white rounded-lg shadow-sm border"><h3 class="section-header"><i class="fas fa-sd-card"></i>MEMORY มีสูตรจำ</h3><div id="memoryContent"></div></div>
+                <div class="p-6 bg-white rounded-lg shadow-sm border"><h3 class="section-header"><i class="fas fa-pencil-alt"></i>APPLICATION นำไปใช้</h3><div id="applicationContent"></div></div>
+                <div class="p-6 bg-white rounded-lg shadow-sm border"><h3 class="section-header"><i class="fas fa-file-alt"></i>ONE-PAGE SUMMARY ไว้หน้าเดียว</h3><div id="summaryContent"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
     <div id="create-project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
         <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
             <h3 class="text-xl font-bold mb-4">สร้างโปรเจคใหม่</h3>
@@ -1186,34 +1393,83 @@ body.dimmed #dim-overlay {
         </div>
     </div>
 	
-	<div id="global-live-game-modal"
-     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-  <div class="bg-white p-6 rounded-lg shadow-xl max-w-xl w-full">
-    <h3 class="text-xl font-bold mb-4">เริ่ม Live Game (ทุกโปรเจค)
-    <span id="global-live-game-count" class="text-base font-normal text-gray-500 ml-2"></span>
-</h3>
+	<div id="blueprint-projects-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white p-6 rounded-lg shadow-xl max-w-xl w-full flex flex-col">
+<div class="flex justify-between items-center mb-4">
+    <h3 class="text-xl font-bold text-teal-700">โปรเจค Blueprint ที่บันทึกไว้</h3>
+    <div class="flex items-center gap-4">
+        <button id="manual-create-blueprint-btn" class="bg-blue-600 text-white py-1 px-3 rounded-lg font-semibold hover:bg-blue-700 flex items-center text-sm">
+            <i class="fas fa-plus mr-2"></i>สร้างโปรเจคเอง
+        </button>
+        <button id="cancel-blueprint-projects-btn" class="text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+    </div>
+</div>
+    <div id="blueprint-project-list" class="max-h-96 overflow-y-auto border rounded-md">
+        <p class="p-4 text-center text-gray-500">กำลังโหลด...</p>
+    </div>
+  </div>
+</div>
 
-    <input id="global-quiz-search-input" type="text"
-           class="w-full p-2 border border-gray-300 rounded-lg mb-3"
-           placeholder="ค้นหาชื่อแบบทดสอบหรือชื่อโปรเจค...">
+<div id="manual-blueprint-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full flex flex-col">
+    <h3 class="text-xl font-bold text-blue-700 mb-4">สร้างโปรเจค Blueprint ด้วยตนเอง</h3>
 
-    <div id="global-quiz-list"
-         class="max-h-72 overflow-y-auto border rounded-md">
-      <!-- สร้างรายการด้วย JS -->
+    <div class="space-y-4">
+        <div>
+            <label for="manual-bp-project-name" class="block text-sm font-medium text-gray-700">ชื่อโปรเจค:</label>
+            <input type="text" id="manual-bp-project-name" class="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="เช่น O-NET ป.6 (สร้างเอง)">
+        </div>
+        <div>
+            <label for="manual-bp-grade-level" class="block text-sm font-medium text-gray-700">ระดับชั้น:</label>
+            <input type="text" id="manual-bp-grade-level" class="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="เช่น ประถมศึกษาปีที่ 6">
+        </div>
+        <div>
+            <label for="manual-bp-content" class="block text-sm font-medium text-gray-700">
+                วางเนื้อหา (ใช้การย่อหน้า):
+            </label>
+            <textarea id="manual-bp-content" rows="10" class="mt-1 w-full p-2 border border-gray-300 rounded-lg font-mono text-sm" placeholder="สาระที่ 1: จำนวนและพีชคณิต
+    การบวก ลบ คูณ หารจำนวนนับ
+        การแก้โจทย์ปัญหาและการสร้างโจทย์ปัญหา
+สาระที่ 2: การวัดและเรขาคณิต
+    เวลา
+        การเปรียบเทียบระยะเวลา"></textarea>
+            <p class="text-xs text-gray-500 mt-1">
+                <b>รูปแบบ:</b><br>
+                บรรทัดไม่ย่อหน้า = สาระ (Sara)<br>
+                ย่อหน้า 1 ระดับ = หัวข้อหลัก (Main Topic)<br>
+                ย่อหน้า 2 ระดับ = หัวข้อย่อย (Sub Topic)
+            </p>
+        </div>
     </div>
 
-    <div class="flex justify-end gap-3 mt-4">
-      <button id="cancel-global-live-btn"
-              class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300">
+    <div class="flex justify-end gap-3 mt-6">
+      <button id="cancel-manual-bp-btn" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300">
         ยกเลิก
       </button>
-      <button id="confirm-global-live-btn"
-              class="bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 disabled:opacity-50"
-              disabled>
-        เริ่ม
+      <button id="confirm-manual-bp-btn" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+        สร้างและบันทึกโปรเจค
       </button>
     </div>
   </div>
+</div>
+	
+<div id="global-activity-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
+  <div class="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full flex flex-col h-[80vh]">
+    <div class="flex justify-between items-center mb-4 flex-shrink-0">
+        <h3 class="text-xl font-bold text-gray-700">เริ่มกิจกรรม (ทุกโปรเจค)
+            <span id="global-quiz-count" class="text-base font-normal text-gray-500 ml-2"></span>
+        </h3>
+        <button id="cancel-global-activity-btn" class="text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+    </div>
+
+    <input id="global-quiz-search-input" type="text"
+           class="w-full p-2 border border-gray-300 rounded-lg mb-3 flex-shrink-0"
+           placeholder="ค้นหาชื่อแบบทดสอบหรือชื่อโปรเจค...">
+
+    <div id="global-activity-quiz-list" class="flex-grow overflow-y-auto border rounded-md">
+      </div>
+
+    </div>
 </div>
 
 <div id="quiz-bank-modal"
@@ -1240,6 +1496,31 @@ body.dimmed #dim-overlay {
       </div>
 
   </div>
+</div>
+
+<div id="topic-quiz-bank-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full flex flex-col h-[90vh]">
+        <div class="flex justify-between items-center mb-4 border-b pb-3">
+            <div>
+                <h3 class="text-xl font-bold text-gray-800">คลังแบบทดสอบประจำหัวข้อ</h3>
+                <p id="topic-bank-subtopic-name" class="text-sm text-gray-500"></p>
+            </div>
+            <button id="close-topic-bank-btn" class="text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+        </div>
+        
+        <div id="topic-bank-list" class="flex-grow overflow-y-auto border rounded-md">
+            </div>
+
+        <div class="mt-4 pt-4 border-t flex justify-between items-center">
+            <p class="text-xs text-gray-500">จัดการแบบทดสอบสำหรับหัวข้อนี้โดยเฉพาะ</p>
+			<button id="clear-all-links-btn" class="hidden bg-red-100 text-red-700 py-2 px-4 rounded-lg font-semibold hover:bg-red-200 text-sm">
+                <i class="fas fa-eraser mr-2"></i>ล้างการเชื่อมโยงทั้งหมด
+            </button>
+            <button id="add-from-global-bank-btn" class="bg-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-purple-700">
+                <i class="fas fa-plus-circle mr-2"></i>เลือกจากคลังรวม
+            </button>
+        </div>
+    </div>
 </div>
 
     <div id="quiz-settings-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
@@ -1321,6 +1602,80 @@ body.dimmed #dim-overlay {
             </div>
         </div>
     </div>
+	
+	<div id="blueprint-settings-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full flex flex-col">
+        <h3 class="text-xl font-bold mb-4">ตั้งค่าสำหรับสร้างแบบทดสอบ (เฉพาะหน้านี้)</h3>
+        
+        <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
+            
+            <div>
+                <label for="bp-modal-quiz-type-select" class="block text-sm font-medium text-gray-700">ประเภทคำถาม:</label>
+                <select id="bp-modal-quiz-type-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                    <optgroup label="ทั่วไป">
+                        <option value="multiple_choice">แบบเลือกตอบ (ก, ข, ค, ง)</option>
+                        <option value="matching">แบบจับคู่ (แยกข้อ)</option>
+                        <option value="true_false">แบบถูก/ผิด</option>
+                    </optgroup>
+                    <optgroup label="แบบเติมคำ">
+                        <option value="fill_in_with_choices">เติมคำ (มีตัวเลือกให้)</option>
+                        <option value="fill_in_no_choices">เติมคำ (พิมพ์ตอบเอง)</option>
+                        <option value="mixed">แบบผสม (เลือกตอบและเติมคำ)</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div>
+                <label for="bp-modal-difficulty-level-select" class="block text-sm font-medium text-gray-700">ระดับชั้น/ความยาก:</label>
+                <select id="bp-modal-difficulty-level-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                     </select>
+            </div>
+
+            <div>
+                <label for="bp-modal-question-complexity-select" class="block text-sm font-medium text-gray-700">ระดับความซับซ้อนของคำถาม:</label>
+                <select id="bp-modal-question-complexity-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                    </select>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="bp-modal-num-questions" class="block text-sm font-medium text-gray-700">จำนวนข้อ:</label>
+                    <input type="number" id="bp-modal-num-questions" value="5" min="1" max="20" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label for="bp-modal-passing-score-input" class="block text-sm font-medium text-gray-700">คะแนนที่ผ่าน:</label>
+                    <input type="number" id="bp-modal-passing-score-input" value="3" min="0" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                </div>
+            </div>
+            
+            <div id="bp-modal-num-choices-container">
+                <label for="bp-modal-num-choices" class="block text-sm font-medium text-gray-700">จำนวนตัวเลือก:</label>
+                <input type="number" id="bp-modal-num-choices" value="4" min="2" max="6" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+            </div>
+
+            <div>
+                <label for="bp-modal-shuffle-setting-select" class="block text-sm font-medium text-gray-700">การสลับข้อ/ตัวเลือก:</label>
+                <select id="bp-modal-shuffle-setting-select" class="mt-1 w-full p-2 border border-gray-300 rounded-lg">
+                    <option value="none">ไม่สลับ</option>
+                    <option value="questions_only">สลับเฉพาะข้อ</option>
+                    <option value="choices_only">สลับเฉพาะตัวเลือก</option>
+                    <option value="both">สลับทั้งข้อและตัวเลือก</option>
+                </select>
+            </div>
+            
+            <div class="flex items-center mt-2">
+                <input id="bp-modal-include-images-checkbox" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                <label for="bp-modal-include-images-checkbox" class="ml-2 block text-sm font-medium text-gray-900">สร้างคำถามพร้อมรูปภาพ</label>
+            </div>
+
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6">
+            <button id="cancel-bp-settings-btn" class="bg-gray-300 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-400">ยกเลิก</button>
+            <button id="save-bp-settings-btn" class="bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700">บันทึกการตั้งค่า</button>
+        </div>
+    </div>
+</div>
     
     <div id="quiz-status-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
         <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
@@ -1450,6 +1805,50 @@ body.dimmed #dim-overlay {
             <button id="confirm-game-start-btn" class="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">ยืนยันและเริ่ม</button>
         </div>
     </div>
+</div>
+
+<div id="shortcut-editor-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full">
+        <h3 id="shortcut-modal-title" class="text-xl font-bold mb-4">แก้ไขปุ่มลัด</h3>
+        <div class="space-y-4">
+            <div>
+                <label for="shortcut-name-input" class="block text-sm font-medium text-gray-700">ชื่อปุ่มลัด:</label>
+                <input type="text" id="shortcut-name-input" class="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="เช่น Blueprint O-NET ป.6">
+            </div>
+            <div>
+                <label for="shortcut-blueprint-url-input" class="block text-sm font-medium text-gray-700">ลิงก์ Test Blueprint (จาก Google Drive):</label>
+                <input type="url" id="shortcut-blueprint-url-input" class="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="วางลิงก์ที่แชร์แบบ 'ทุกคนที่มีลิงก์' ที่นี่">
+            </div>
+            <div>
+                <label for="shortcut-reference-url-input" class="block text-sm font-medium text-gray-700">ลิงก์ไฟล์อ้างอิงความยาก (ตัวเลือกเสริม):</label>
+                <input type="url" id="shortcut-reference-url-input" class="mt-1 w-full p-2 border border-gray-300 rounded-lg" placeholder="วางลิงก์ไฟล์ PDF หรือ TXT">
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+            <input type="hidden" id="shortcut-id-input">
+            <button id="cancel-shortcut-edit-btn" class="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300">ยกเลิก</button>
+            <button id="save-shortcut-btn" class="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700">บันทึก</button>
+        </div>
+    </div>
+</div>
+
+<div id="additional-shortcuts-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+<div class="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full flex flex-col h-[80vh]">
+    <div class="flex justify-between items-center mb-4">
+        <h3 id="shortcut-modal-main-title" class="text-xl font-bold text-gray-700">ปุ่มลัดทั้งหมด</h3>
+        <button id="close-additional-shortcuts-btn" class="text-gray-500 hover:text-red-600 text-2xl">&times;</button>
+    </div>
+
+    <div class="flex items-center border-b border-gray-200 mb-3 flex-shrink-0">
+        <nav id="shortcut-tabs-nav" class="flex-grow -mb-px flex space-x-4 overflow-x-auto" aria-label="Tabs">
+            </nav>
+        <button id="add-shortcut-tab-btn" class="ml-4 text-blue-600 hover:text-blue-800 font-semibold text-sm whitespace-nowrap py-3" title="เพิ่มแท็บใหม่">
+            <i class="fas fa-plus-circle"></i> เพิ่มแท็บ
+        </button>
+    </div>
+    <div id="additional-shortcuts-list" class="flex-grow overflow-y-auto border rounded-md">
+        </div>
+</div>
 </div>
 
     <!-- Presentation Mode Container -->
